@@ -1,0 +1,82 @@
+# Schema exposure policy — the only database-specific file in the project.
+#
+# The MCP server discovers tables/columns live from PostgreSQL and then
+# applies this policy to decide what the AI agent may see and query.
+# When the database or schema changes, edit THIS file (or nothing at all,
+# if the change is additive and harmless) — never the Python code.
+#
+# Patterns use shell-style wildcards (fnmatch): "*_path" matches eml_path
+# and storage_path; "*hash*" matches content_hash.
+
+schemas:
+  - public
+
+# Tables hidden from the agent entirely (operational/infra data).
+exclude_tables:
+  - import_jobs
+
+# Column patterns hidden from every table (security hygiene: filesystem
+# paths, dedup hashes, internal ids, raw HTML, search internals, reserved
+# JSONB blobs, threading headers, bookkeeping timestamps).
+exclude_column_patterns:
+  - "*_path"          # eml_path, storage_path
+  - "*hash*"          # content_hash
+  - "sha256"
+  - "search_vector"
+  - "body_html"
+  - "message_id"
+  - "analysis"
+  - "enrichment"
+  - "extracted_text"
+  - "in_reply_to"
+  - "reference_ids"
+  - "reply_to"
+  - "created_at"
+  - "updated_at"
+
+# Per-table exclusions (none currently; example shape):
+# exclude_columns:
+#   some_table: ["some_column", "prefix_*"]
+exclude_columns: {}
+
+# Descriptions shown to the LLM (Postgres COMMENTs are picked up
+# automatically when present; entries here override them).
+descriptions:
+  clients: "Every email participant known to the system (sender or recipient)."
+  clients.id: "Primary key."
+  clients.email: "Email address, unique."
+  clients.display_name: "Display name, if known."
+  clients.domain: "Email domain, e.g. company.com."
+  clients.company: "Company name associated with this contact, if known."
+  clients.first_seen: "First time this contact appeared in an email."
+  clients.last_seen: "Most recent time this contact appeared in an email."
+  emails: "Individual email messages."
+  emails.id: "Primary key."
+  emails.from_client_id: "FK to clients.id — who sent this email."
+  emails.subject: "Email subject line."
+  emails.body_text: "Plain-text email body."
+  emails.sent_date: "When the email was sent."
+  emails.received_date: "When the email was received."
+  emails.has_attachment: "Whether this email has one or more attachments."
+  emails.folder: "Mailbox folder the email was found in."
+  emails.thread_id: "Groups messages belonging to the same conversation thread."
+  email_participants: "Maps emails to clients by role (from/to/cc/bcc). Use this to resolve recipients."
+  email_participants.role: "One of: from, to, cc, bcc."
+  attachments: "Attachment metadata for emails (not attachment content)."
+  attachments.filename: "Original attachment filename."
+  attachments.mime_type: "Attachment MIME type."
+  attachments.size: "Attachment size in bytes."
+
+# Maps the generic search_emails tool onto this database. Remove or change
+# this section for a different schema; the tool interface stays identical.
+search:
+  table: emails
+  id_column: id
+  date_column: sent_date
+  title_column: subject
+  snippet_column: body_text
+  tsvector_column: search_vector   # GIN-indexed full-text; omit to use ILIKE fallback
+  sender_table: clients
+  sender_local_key: from_client_id
+  sender_remote_key: id
+  sender_display_column: email

@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-cream text-ink font-mono antialiased;
+}
+
+.brutal-card {
+  @apply border-2 border-ink bg-paper shadow-brutal;
+}
+
+.brutal-btn {
+  @apply border-2 border-ink px-3 py-1.5 text-xs font-bold uppercase tracking-wide shadow-brutal-sm transition-transform active:translate-x-[2px] active:translate-y-[2px] active:shadow-none;
+}
+
+.tag {
+  @apply inline-block border-2 border-ink px-1.5 py-0.5 text-[10px] font-bold uppercase;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #f2eee3;
+}
+::-webkit-scrollbar-thumb {
+  background: #111;
+  border: 2px solid #f2eee3;
+}
